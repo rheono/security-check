@@ -1,61 +1,55 @@
-# Rheono Fleet Check
+# Rheono Security Check
 
-A read-only security check for your public web/API surface, packaged as an
+A free, read-only security check for your own web app or API, packaged as an
 [agent skill](https://skills.sh) for OpenClaw, Claude Code, Codex, Cursor and
-75+ other agents.
+other agents.
 
-It runs a ~30-second reconnaissance pass (GET/HEAD only, 1 rps, ≤300 requests,
-same-root scope) and reports what an attacker's first sweep would see:
-exposed secrets files, CORS reflection, open redirects, missing HSTS/CSP,
-certificate expiry, debug endpoints, version disclosure, DMARC/SPF gaps.
+Ask your agent to check your site. The skill submits it to
+[Rheono](https://rheono.dev), a researcher confirms it, and a report is
+emailed to you. No API key, no account, nothing to install on your side.
 
-## Consent (read this first)
+## Consent
 
 Only run this on domains **you own or have written authorization to test**.
-The probe is low-footprint and read-only, but it is still scanning someone's
-infrastructure. The skill enforces a consent check before it runs.
+The check is read-only, but it is still scanning live infrastructure — the
+skill asks for confirmation before it submits anything.
 
 ## Install
 
 ```sh
 # any agent (skills.sh)
-npx skills add rheono/fleet-check
+npx skills add rheono/security-check
 
 # OpenClaw
-openclaw skills install @rheono/fleet-check
+openclaw skills install @rheono/security-check
 ```
 
 ## Use
 
 Ask your agent:
 
-> run the fleet check on example.com
+> run a security check on example.com, send the report to me@example.com
 
-## What it checks
+The agent confirms you own the domain, then submits one request:
 
-| Area | Checks |
-|---|---|
-| Secrets exposure | `.env`, `.git/config`, `.aws/credentials`, `.DS_Store`, `package.json` |
-| Headers | HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
-| CORS | `Access-Control-Allow-Origin` reflection |
-| Redirects | open redirect on common params |
-| TLS | certificate expiry, issuer, http→https |
-| Debug surface | `/actuator`, `/debug`, `/graphql`, `/swagger.json`, `/_next/data` |
-| DNS | A records, DMARC, SPF |
+```sh
+curl -sS -X POST https://rheono.dev/api/check-request \
+  -H 'content-type: application/json' \
+  -d '{"domain": "example.com", "email": "me@example.com"}'
+```
 
-Findings are graded critical / high / medium / low / info. Output is a
-markdown summary plus a `fleet-check-report.json` next to where you ran it.
+`{"ok":true,...}` means it's queued; the report arrives by email.
 
-## Limits
+## What it is and is not
 
-- Recon only: no logins, no auth bypass, no fuzzing, no mutations, no
-  third-party hosts.
-- A real engagement (deep hunt, full red team, validated findings with PoC)
-  is what [Rheono](https://rheono.dev) does — with a written authorization.
+- **Is:** a single request to the public `check-request` endpoint. The skill
+  carries no scanner, no local probing, no credentials.
+- **Is not:** a deep engagement. A continuous standing hunt — validated
+  findings, PoC, written scope, re-checks — is what
+  [Rheono](https://rheono.dev) runs for customers.
 
 ## Repo layout
 
 ```
-skills/fleet-check/SKILL.md           skill definition
-skills/fleet-check/scripts/probe.mjs  the probe (zero dependencies, Node 18+)
+skills/security-check/SKILL.md   the skill
 ```
